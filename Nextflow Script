@@ -1,0 +1,43 @@
+// Define the input directory containing your images
+params.inputDir = file("/vast/scratch/users/liu.c/4M03_23.09.2021_21.04.52_Default_Extended.tif")
+(variable “inputDir” within the “params” block, create a file in Nextflow which represents the path to the directory containing the images)
+
+// Define a process for 'IHC_DAB_Count.py' to perform DAB scoring
+process performDABScoring {
+    script:
+    """
+    python IHC_DAB_Count.py ${params.inputDir}
+    """
+    output:
+    file 'result.txt' into dab_results
+
+    // Customize resource requirements if needed
+    // memory '2 GB'
+    // cpus 2
+}
+(the 'result.txt' file should be directed into the dab_results channel)
+
+// Define a process for 'getTifs.py' to generate a list of images
+process generateImageList {
+    input:
+    file result from dab_results
+
+    script:
+    """
+    python getTifs.py ${result}
+    """
+    output:
+    file 'image_list.txt' into tif_list
+
+    // Customize resource requirements if needed
+    // memory '2 GB'
+    // cpus 2
+}
+
+// Define the workflow
+workflow {
+    // Connect the processes by passing the output of performDABScoring to generateImageList
+    dab_results = channel.from(performDABScoring.out)
+
+    generateImageList(dab_results)
+}
